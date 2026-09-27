@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>环秀园·雨夜来信</title>
+    <style>
+      :root {
+        --paper: #e4d7bc;
+        --ink: #192017;
+        --red: #9f4936;
+        --line: rgba(228, 215, 188, 0.32);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #101610;
+        color: var(--paper);
+        font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+      }
+      canvas {
+        display: block;
+      }
+      button {
+        font: inherit;
+      }
+      #ui {
+        position: fixed;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        text-shadow: 0 2px 12px #000;
+      }
+      .dark {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            90deg,
+            rgba(5, 10, 6, 0.82),
+            transparent 45%,
+            rgba(5, 10, 6, 0.42)
+          ),
+          linear-gradient(0deg, rgba(5, 10, 6, 0.65), transparent 40%);
+      }
+      .rain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.35;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          106deg,
+          transparent 0 28px,
+          rgba(191, 211, 208, 0.25) 29px 30px,
+          transparent 31px 57px
+        );
+        background-size: 190px 190px;
+        animation: r 0.55s linear infinite;
+      }
+      @keyframes r {
+        to {
+          background-position: -55px 130px;
+        }
+      }
+      .brand {
+        position: absolute;
+        top: 24px;
+        left: 30px;
+        display: flex;
+        gap: 14px;
+      }
+      .seal {
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--red);
+        color: #d88e76;
+        display: grid;
+        place-items: center;
+        font:
+          20px "Noto Serif SC",
+          "Songti SC",
+          serif;
+        writing-mode: vertical-rl;
+      }
+      .brand h1 {
+        margin: -2px 0 4px;
+        font:
+          400 22px "Noto Serif SC",
+          "Songti SC",
+          serif;
+        letter-spacing: 0.16em;
+      }
+      .brand p {
+        margin: 0;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: #c5bca8;
+      }
+      .objective {
+        position: absolute;
+        left: 31px;
+        bottom: 29px;
+        max-width: 390px;
+        border-left: 1px solid var(--red);
+        padding-left: 15px;
+      }
+      .objective small {
+        color: #d48c72;
+        letter-spacing: 0.22em;
+      }
+      .objective h2 {
+        font:
+          400 25px "Noto Serif SC",
+          "Songti SC",
+          serif;
+        letter-spacing: 0.1em;
+        margin: 7px 0;
+      }
+      .objective p {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #d4cbb8;
+        margin: 0;
+      }
+      .keys {
+        font-size: 10px;
+        color: #bbb3a1;
+        margin-top: 12px;
+      }
+      kbd {
+        border: 1px solid var(--line);
+        padding: 1px 4px;
+        font: 10px inherit;
+      }
+      .clues {
+        position: absolute;
+        right: 30px;
+        top: 27px;
+        width: 225px;
+        border-top: 1px solid #a85b45;
+        padding-top: 9px;
+      }
+      .clues h3 {
+        font:
+          400 12px "Noto Serif SC",
+          "Songti SC",
+          serif;
+        letter-spacing: 0.16em;
+        margin: 0 0 9px;
+      }
+      .clue {
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: #a9a897;
+        margin: 7px 0;
+      }
+      .clue:before {
+        content: "○";
+        margin-right: 7px;
+        color: #a85b45;
+      }
+      .clue.got {
+        color: #e1d7be;
+      }
+      .clue.got:before {
+        content: "●";
+      }
+      #hint {
+        position: absolute;
+        left: 50%;
+        bottom: 45px;
+        transform: translateX(-50%);
+        border: 1px solid var(--line);
+        background: rgba(6, 12, 7, 0.75);
+        padding: 9px 15px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        opacity: 0;
+        transition: 0.2s;
+      }
+      #hint.show {
+        opacity: 1;
+      }
+      #loading,
+      #intro,
+      #inspect,
+      #ending {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+      }
+      #loading {
+        background: #101610;
+        transition: 0.6s;
+      }
+      #loading.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .load {
+        text-align: center;
+        width: min(350px, 76vw);
+      }
+      .load h2 {
+        font:
+          400 25px "Noto Serif SC",
+          "Songti SC",
+          serif;
+        letter-spacing: 0.17em;
+      }
+      .load p {
+        font-size: 11px;
+        color: #c6b797;
+      }
+      .line {
+        height: 1px;
+        background: #555;
+        margin-top: 20px;
+      }
+      .line i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: #a85b45;
+        transition: 0.2s;
+      }
+      #intro {
+        background: linear-gradient(
+          90deg,
+          rgba(5, 10, 6, 0.93),
+          rgba(5, 10, 6, 0.26) 74%,
+          rgba(5, 10, 6, 0.65)
+        );
+        transition: 0.5s;
+        visibility: hidden;
+      }
+      #intro.ready {
+        visibility: visible;
+      }
+      #intro.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #intro[hidden] {
+        display: none !important;
+      }
+      .intro {
+        width: min(540px, calc(100vw - 46px));
+        margin-right: 26vw;
+        border-left: 1px solid #a85b45;
+        padding-left: 28px;
+      }
+      .eyebrow {
+        color: #d48c72;
+        font-size: 10px;
+        letter-spacing: 0.25em;
+      }
+      .intro h2,
+      .paper h2 {
+        font:
+          400 clamp(35px, 5vw, 58px)/1.2 "Noto Serif SC",
+          "Songti SC",
+          serif;
+        letter-spacing: 0.1em;
+        margin: 15px 0;
+      }
+      .intro p,
+      .paper p {
+        font-size: 14px;
+        line-height: 2;
+        color: #ddd2bb;
+        max-width: 430px;
+      }
+      .go {
+        cursor: pointer;
+        pointer-events: auto;
+        border: 0;
+        background: #a85b45;
+        color: #f1e7d0;
+        padding: 11px 18px;
+        letter-spacing: 0.15em;
+      }
+      .go:disabled {
+        cursor: wait;
+        opacity: 0.55;
+      }
+      .paper {
+        width: min(500px, calc(100vw - 38px));
+        background: #263025;
+        border: 1px solid rgba(168, 91, 69, 0.75);
+        padding: 36px 40px;
+        box-shadow: 0 24px 70px #000;
+      }
+      .paper h2 {
+        font-size: 28px;
+        margin: 10px 0;
+      }
+      .paper p {
+        margin: 0;
+      }
+      .paper button {
+        cursor: pointer;
+        pointer-events: auto;
+        color: #e4b19f;
+        border: 1px solid #b76b52;
+        background: transparent;
+        padding: 9px 14px;
+        margin-top: 21px;
+        letter-spacing: 0.12em;
+      }
+      #inspect,
+      #ending {
+        background: rgba(3, 7, 4, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.2s;
+      }
+      #inspect.show,
+      #ending.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      @media (max-width: 650px) {
+        .brand {
+          left: 17px;
+        }
+        .clues {
+          right: 17px;
+          top: auto;
+          bottom: 125px;
+        }
+        .objective {
+          left: 17px;
+          bottom: 18px;
+          max-width: 310px;
+        }
+        .intro {
+          margin: 0 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <div class="dark"></div>
+      <div class="rain"></div>
+      <header class="brand">
+        <span class="seal">环秀</span>
+        <div>
+          <h1>雨夜来信</h1>
+          <p>THE LETTER LEFT IN RAIN</p>
+        </div>
+      </header>
+      <aside class="clues">
+        <h3>线索板 · <span id="count">0 / 3</span></h3>
+        <div class="clue">半湿的信封</div>
+        <div class="clue">熄灭的灯</div>
+        <div class="clue">未上锁的匣</div>
+      </aside>
+      <section class="objective">
+        <small>第一章 · 廊下雨声</small>
+        <h2 id="task">雨没有停</h2>
+        <p id="desc">看守人说，今晚不该有人来。但廊下有一封被雨打湿的信。</p>
+        <div class="keys">
+          <kbd>F</kbd> 前往线索　<kbd>E</kbd> 调查　<kbd>W A S D</kbd>
+          游园　<kbd>鼠标</kbd> 取景
+        </div>
+      </section>
+      <div id="hint"></div>
+    </div>
+    <div id="loading">
+      <div class="load">
+        <h2>雨声正在靠近</h2>
+        <p id="loadtext">0%</p>
+        <div class="line"><i id="bar"></i></div>
+      </div>
+    </div>
+    <div id="intro">
+      <div class="intro">
+        <span class="eyebrow">环 秀 园 · 一 封 未 寄 的 信</span>
+        <h2>雨夜里，<br />有人没有离开。</h2>
+        <p>
+          你是留守园宅的看守。停电后的廊下出现一封信、一盏熄灯与一只未锁的匣。它们似乎都在等你，替某个人说完未说的话。
+        </p>
+        <button type="button" class="go" id="start" disabled>场景载入中…</button>
+      </div>
+    </div>
+    <div id="inspect">
+      <article class="paper">
+        <span class="eyebrow" id="note-small"></span>
+        <h2 id="note-title"></h2>
+        <p id="note-body"></p>
+          <button type="button" id="next">记入线索板</button>
+      </article>
+    </div>
+    <div id="ending">
+      <article class="paper">
+        <span class="eyebrow">CHAPTER ONE COMPLETE</span>
+        <h2>信没有寄出。</h2>
+        <p>
+          匣中是一张未完成的画，画着同一条回廊。信的收件人并不在园外——他一直在等待画中人回来。雨还未停，第二章将在花窗前继续。
+        </p>
+          <button type="button" id="restart">进入第二场景</button>
+      </article>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./examples/engine/three/three.module.js",
+          "three/addons/": "./examples/engine/three/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { FirstPersonControls } from "./examples/engine/three/FirstPersonControls.js";
+      import { LCCRender } from "./sdk/lcc-sdk-three.js";
+      const $ = (x) => document.getElementById(x),
+        items = [
+          [
+            "半湿的信封",
+            "廊下 · 子夜",
+            "信封没有署名，只有一句被雨晕开的字：\n“若你仍记得那扇花窗，请在雨停前回来。”",
+            [0, 2, 3.7],
+            [0, 2, 6],
+          ],
+          [
+            "熄灭的灯",
+            "廊柱 · 子夜",
+            "灯芯还是温的。灯座下压着一张旧照片：同一座庭院里，两个人隔着花窗相望。",
+            [-4.8, 2, 7.8],
+            [-5.5, 2, 10.5],
+          ],
+          [
+            "未上锁的匣",
+            "门前 · 子夜",
+            "匣子没有锁，只有一枚褪色的印章。里面是一幅未完成的画，画中回廊尽头站着一个没有脸的人。",
+            [4.7, 2, 12.2],
+            [5.2, 2, 15],
+          ],
+        ];
+      const scene = new THREE.Scene(),
+        r = new THREE.WebGLRenderer({ antialias: true });
+      r.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      r.setSize(innerWidth, innerHeight);
+      r.setClearColor(0x101610);
+      document.body.prepend(r.domElement);
+      const cam = new THREE.PerspectiveCamera(
+        48,
+        innerWidth / innerHeight,
+        0.1,
+        150000,
+      );
+      cam.position.set(0, 2, 0);
+      cam.lookAt(0, 2, 1);
+      const c = new FirstPersonControls(cam, r.domElement);
+      c.enabled = false;
+      c.movementSpeed = 3.1;
+      c.lookAt(new THREE.Vector3(0, 2, 1));
+      const clock = new THREE.Clock(),
+        m = new THREE.Matrix4(-1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
+        l = LCCRender.load(
+          {
+            camera: cam,
+            scene,
+            dataPath: new URLSearchParams(location.search).get("scene") === "venetian"
+              ? `${location.origin}/The_Venetian_Resort/The_Venetian_Resort.lcc2`
+              : `${location.origin}/HuanxiuGarden/meta.lcc2`,
+            renderLib: THREE,
+            canvas: r.domElement,
+            renderer: r,
+            useEnv: true,
+            usePage: true,
+            useIndexDB: true,
+            useLoadingEffect: false,
+            modelMatrix: m,
+            appKey: null,
+          },
+          () => {
+            sceneReady = true;
+            $("loading").classList.add("hide");
+            $("intro").classList.add("ready");
+            $("start").disabled = false;
+            $("start").textContent = "推开园门";
+          },
+          (p) => {
+            let n = Math.round(p * 100);
+            $("loadtext").textContent = `正在载入园宅 · ${n}%`;
+            $("bar").style.width = n + "%";
+          },
+          () => {
+            $("loadtext").textContent = "请通过本地服务器打开。";
+          },
+        );
+      l.setStartLod(0);
+      l.setMaxSplats(4000000);
+      l.setMaxNodeSplats(1000000);
+      l.setMaxDistance(90);
+      let sceneReady = false,
+        a = 0,
+        play = false,
+        ready = false;
+      function guide() {
+        if (!play || a === 3) return;
+        let x = items[a];
+        cam.position.set(...x[3]);
+        cam.lookAt(...x[4]);
+        c.lookAt(new THREE.Vector3(...x[4]));
+        ready = true;
+        $("hint").textContent = `已到达 · 按 E 调查「${x[0]}」`;
+        $("hint").classList.add("show");
+      }
+      function inspect() {
+        if (!ready || a === 3) return;
+        let x = items[a];
+        c.enabled = false;
+        $("note-small").textContent = x[1];
+        $("note-title").textContent = x[0];
+        $("note-body").textContent = x[2];
+        $("inspect").classList.add("show");
+        ready = false;
+      }
+      $("start").onclick = () => {
+        if (!sceneReady) return;
+        // The intro must leave the DOM completely: leaving it as a transparent
+        // fixed layer can still overlap the investigation panel in some browsers.
+        $("intro").remove();
+        play = true;
+        c.enabled = true;
+      };
+      $("next").onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        $("inspect").classList.remove("show");
+        document.querySelectorAll(".clue")[a].classList.add("got");
+        a++;
+        $("count").textContent = `${a} / 3`;
+        $("task").textContent = a === 3 ? "匣中之画" : items[a][0];
+        $("desc").textContent =
+          a === 3
+            ? "所有线索指向花窗。今晚的故事，才刚刚开始。"
+            : `下一处：${items[a][0]}。`;
+        if (a === 3) setTimeout(() => $("ending").classList.add("show"), 250);
+        else c.enabled = true;
+      };
+      $("restart").onclick = () => {
+        if (new URLSearchParams(location.search).get("scene") !== "venetian") {
+          location.assign(`${location.pathname}?scene=venetian&stage=2`);
+        } else {
+          location.reload();
+        }
+      };
+      if (new URLSearchParams(location.search).get("scene") === "venetian") {
+        $("restart").textContent = "重新开始";
+      }
+      addEventListener("keydown", (e) => {
+        if (e.code === "KeyF") guide();
+        if (e.code === "KeyE") inspect();
+      });
+      addEventListener("resize", () => {
+        cam.aspect = innerWidth / innerHeight;
+        cam.updateProjectionMatrix();
+        r.setSize(innerWidth, innerHeight);
+      });
+      function loop() {
+        requestAnimationFrame(loop);
+        if (c.enabled) c.update(clock.getDelta());
+        LCCRender.update();
+        r.render(scene, cam);
+      }
+      loop();
+    </script>
+  </body>
+</html>
